@@ -89,18 +89,23 @@ socket.on 'connect', () ->
 	socket.emit 'iamonline', {data: "I'm connected!"}
 	return
 
-socket.on 'move', (data) ->
-	#console.log 'GOT '+ data.x + " " + data.y
-	if data.type == "player"
-		player = other_players[data.id]
-		player.position.x = data.x
-		player.position.y = data.y 
-		player.rotate()
-	else if data.type == "bullet"
-		bullet = bullets[data.id]
-		bullet.position.x = data.x
-		bullet.position.y = data.y
+socket.on 'bullet-move', (data) ->
+	bullet = bullets[data.id]
+	bullet.position.x = data.x
+	bullet.position.y = data.y
 	return 
+
+socket.on 'bullet-remove', (data) ->
+	bullet = bullets[data.id]
+	stage.removeChild bullet
+	return 
+
+socket.on 'move', (data) ->
+	player = other_players[data.id]
+	player.position.x = data.x
+	player.position.y = data.y 
+	player.rotate()
+	return
 
 setInterval () ->
   startTime = Date.now()
@@ -170,7 +175,7 @@ moveRight = ->
 	return
 
 sendBullet = ->
-	socket.emit "move",{"action": "bullet", "id":main_player, "type":"bullet"}
+	socket.emit "new_bullet",{"direction":other_players[main_player].direction, "id":main_player}
 	#fire here
 	return
 

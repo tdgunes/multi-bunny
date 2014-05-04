@@ -119,18 +119,25 @@
     });
   });
 
+  socket.on('bullet-move', function(data) {
+    var bullet;
+    bullet = bullets[data.id];
+    bullet.position.x = data.x;
+    bullet.position.y = data.y;
+  });
+
+  socket.on('bullet-remove', function(data) {
+    var bullet;
+    bullet = bullets[data.id];
+    stage.removeChild(bullet);
+  });
+
   socket.on('move', function(data) {
-    var bullet, player;
-    if (data.type === "player") {
-      player = other_players[data.id];
-      player.position.x = data.x;
-      player.position.y = data.y;
-      player.rotate();
-    } else if (data.type === "bullet") {
-      bullet = bullets[data.id];
-      bullet.position.x = data.x;
-      bullet.position.y = data.y;
-    }
+    var player;
+    player = other_players[data.id];
+    player.position.x = data.x;
+    player.position.y = data.y;
+    player.rotate();
   });
 
   setInterval(function() {
@@ -217,10 +224,9 @@
   };
 
   sendBullet = function() {
-    socket.emit("move", {
-      "action": "bullet",
-      "id": main_player,
-      "type": "bullet"
+    socket.emit("new_bullet", {
+      "direction": other_players[main_player].direction,
+      "id": main_player
     });
   };
 

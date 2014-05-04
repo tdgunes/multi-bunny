@@ -17,7 +17,36 @@ socketio = SocketIO(app)
 names = ["Joe", "John", "Small", "B-Bunny", "Jack"]
 
 online_players = {}
-speed = 3
+bullets = []
+speed = 4
+bullet_speed = 0.01
+
+WIDTH = 800
+HEIGHT = 600
+
+def move_bullets():
+	print "Bullet thread, activated..."
+	while True:
+		time.sleep(bullet_speed)
+		for bullet in bullets:
+			
+			if bullet["direction"] == "right":
+				bullet["x"] += speed + 4
+			elif bullet["direction"] == "left":
+				bullet["x"] -= speed + 4
+			elif bullet["direction"] == "up":
+				bullet["y"] -= speed + 4
+			elif bullet["direction"] == "down":
+				bullet["y"] += speed + 4
+
+			if  bullet["x"] < 0 or bullet["x"] > WIDTH or \
+			 bullet["y"] < 0 or bullet["y"] > HEIGHT:
+			 	socketio.emit('bullet-remove', bullet, namespace='/game')
+				bullets.remove(bullet)
+
+			socketio.emit('bullet-move', bullet, namespace='/game')
+
+
 
 @app.route('/')
 def index():
@@ -76,14 +105,22 @@ def move(message):
 		player["x"] = speed if player["x"]<0 else player["x"]
 		player["y"] = speed if player["y"]<0 else player["y"]
 
-		socketio.emit('move', player, namespace='/game')
-	
-	elif message["type"] == "bullet":
-		player = online_players[message["name"]]
-		print "bullet from ", player 
-		socketio.emit('bullet', player, namespace='/game')	
+		player["x"] = WIDTH-speed if player["x"]>WIDTH else player["x"]
+		player["y"] = HEIGHT-speed if player["y"]>HEIGHT else player["y"]
 
-    
+		socketio.emit('move', player, namespace='/game')
+
+@socketio.on('new_bullet', namespace='/game')
+def on_new_bullet(data):
+	sender = online_players[data["id"]]
+	bullet = {}
+	bullet["x"] = sender["x"]
+	bullet["direction"] = sender["direction"]
+	bullet["y"] = sender["y"]
+	bullet["id"] =str(uuid4())
+	bullets.append(bullet)
+	socketio.emit('bullet', bullet , namespace='/game')	
+
     
 
 @app.route('/img/<path:path>')
@@ -104,6 +141,6 @@ def static_js_files(path):
     return send_from_directory('js', path)
 
 if __name__ == '__main__':
-    
+    Thread(target=move_bullets).start()
     app.debug = True
     socketio.run(app, host='0.0.0.0')
